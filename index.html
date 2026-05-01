@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Agent AI</title>
+
+<style>
+body{
+  margin:0;
+  background:#0f0f0f;
+  color:white;
+  font-family:Arial;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+.box{
+  width:460px;
+  background:#1c1c1c;
+  padding:15px;
+  border-radius:12px;
+}
+
+#chat{
+  height:340px;
+  overflow:auto;
+  border:1px solid #333;
+  padding:10px;
+}
+
+input{width:70%;padding:10px;}
+button{padding:10px;}
+
+.user{color:#4fc3f7;}
+.ai{color:#81c784;}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+<h2>🤖 Agent AI</h2>
+
+<div id="chat"></div>
+
+<input id="input">
+<button onclick="send()">Gönder</button>
+<button onclick="voice()">🎤</button>
+
+</div>
+
+<script>
+
+let memory = JSON.parse(localStorage.getItem("mem") || "[]");
+
+function add(text,type){
+  const chat=document.getElementById("chat");
+  chat.innerHTML+=`<div class="${type}">${text}</div>`;
+  chat.scrollTop=chat.scrollHeight;
+}
+
+async function send(){
+  const input=document.getElementById("input");
+  const text=input.value;
+  input.value="";
+
+  add("Sen: "+text,"user");
+
+  const res=await fetch("/api/chat",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      message:text,
+      memory:memory
+    })
+  });
+
+  const data=await res.json();
+
+  add("AI: "+data.reply,"ai");
+
+  memory.push({role:"user",content:text});
+  memory.push({role:"assistant",content:data.reply});
+
+  localStorage.setItem("mem",JSON.stringify(memory));
+
+  speak(data.reply);
+}
+
+// 🎤 SES
+function voice(){
+  const rec=new webkitSpeechRecognition();
+  rec.lang="tr-TR";
+  rec.start();
+
+  rec.onresult=(e)=>{
+    document.getElementById("input").value=
+      e.results[0][0].transcript;
+  };
+}
+
+// 🔊 SESLİ OKUMA
+function speak(text){
+  const s=new SpeechSynthesisUtterance(text);
+  s.lang="tr-TR";
+  speechSynthesis.speak(s);
+}
+
+</script>
+
+</body>
+</html>
